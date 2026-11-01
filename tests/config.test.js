@@ -8,6 +8,7 @@ test('本番はHTTPS公開先とTursoが必要',()=>{
  const turso={TURSO_DATABASE_URL:'libsql://example.turso.io',TURSO_AUTH_TOKEN:'secret'};
  assert.equal(runtimeConfig({NODE_ENV:'production',APP_ORIGIN:'https://example.com/',PORT:'8080',...turso}).port,8080);
  assert.equal(runtimeConfig({NODE_ENV:'production',RENDER_EXTERNAL_URL:'https://akatsuki.example/',...turso}).origin,'https://akatsuki.example');
+ assert.equal(runtimeConfig({NODE_ENV:'production',RENDER_EXTERNAL_HOSTNAME:'akatsuki.onrender.com',...turso}).origin,'https://akatsuki.onrender.com');
  assert.throws(()=>runtimeConfig({NODE_ENV:'production',APP_ORIGIN:'https://example.com'}),/Turso/);
  assert.throws(()=>runtimeConfig({TURSO_DATABASE_URL:turso.TURSO_DATABASE_URL}),/together/);
 });

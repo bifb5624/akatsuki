@@ -171,3 +171,9 @@
 - Obsidian配布ZIPへMac用 `暁にインストール.command` を追加した。標準的なDocuments/iCloud内の「暁」を自動検出し、既存版をバックアップしてからプラグインを配置する。
 - 一時的な仮Macホームと仮の「暁」Vaultでインストーラーを実行し、`main.js` などが正しい場所へコピーされることを確認。プラグインの型検査、ビルド、5ファイル入りZIPの整合性も成功した。
 - 実Macでの実行、Obsidianのコミュニティプラグイン有効化、公開URL/接続コード設定は未実施。
+
+## 2026-11-01 Render初回公開の修正
+
+- Render Blueprintから初回公開を実行したが、Webサービス作成がFailed deployになった。
+- Renderの公開先環境変数がURL形式 `RENDER_EXTERNAL_URL` とホスト名形式 `RENDER_EXTERNAL_HOSTNAME` のどちらでも動作するよう設定解決を修正した。
+- ホスト名からHTTPS公開元を組み立てる自動テストを追加。秘密値の再発行や再入力は行わない。

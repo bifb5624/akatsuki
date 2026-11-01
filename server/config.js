@@ -1,7 +1,7 @@
 import path from 'node:path';
 export function runtimeConfig(env=process.env){
  const production=env.NODE_ENV==='production';
- const publicUrl=env.APP_ORIGIN||env.RENDER_EXTERNAL_URL;
+ const publicUrl=env.APP_ORIGIN||env.RENDER_EXTERNAL_URL||(env.RENDER_EXTERNAL_HOSTNAME?`https://${env.RENDER_EXTERNAL_HOSTNAME}`:undefined);
  if(production&&!publicUrl)throw Error('APP_ORIGIN must be configured for production.');
  if(Boolean(env.TURSO_DATABASE_URL)!==Boolean(env.TURSO_AUTH_TOKEN))throw Error('TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be configured together.');
  if(production&&!env.TURSO_DATABASE_URL)throw Error('Production requires Turso so business data is not stored on an ephemeral disk.');
