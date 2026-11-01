@@ -86,3 +86,9 @@ Web Pushによる期限通知と、iPhone・Android実機での追加確認は�
 既存SQLiteから空のTursoへ移す場合は、秘密変数を安全に設定して `npm run migrate:turso` を実行する。移行ツールはローカルの整合性確認とバックアップを行い、移行先が使用中なら停止し、全表の件数と内容ハッシュを照合する。
 
 Turso実環境への接続は未確認。接続前のローカルlibSQL、認証、権限、同時更新は自動テスト済み。
+
+## Googleドライブ接続
+
+管理者画面にGoogle OAuth接続、接続状況、保存先フォルダ確認、接続解除を実装済み。`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、32文字以上の `APP_DATA_KEY` をすべて設定した場合だけ有効になる。トークンはAES-256-GCMで暗号化し、Googleパスワードは扱わない。権限は `drive.file` に限定する。
+
+Google Cloud側の許可済みリダイレクトURLは、公開URLに `/api/google/callback` を付けた値にする。実Googleアカウントとの接続とPDF画面からの直接保存は未確認。

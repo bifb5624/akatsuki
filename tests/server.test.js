@@ -10,7 +10,8 @@ import {createApplication} from '../server/app.js';
 test('実認証・招待・権限・共有保存・同時編集・退職・復元の統合検証',async t=>{
  const dataDir=await mkdtemp(path.join(tmpdir(),'akatsuki-auth-test-'));
  const origin='http://localhost:5173',secret=randomBytes(40).toString('hex'),setupToken=randomBytes(40).toString('hex'),password=randomBytes(20).toString('base64url');
- const service=await createApplication({dataDir,origin,secret,setupToken,serveFiles:false});
+ const googleFetch=async url=>{if(String(url).includes('oauth2.googleapis.com/token'))return new Response(JSON.stringify({access_token:'google-access',refresh_token:'google-refresh',expires_in:3600}),{status:200});if(String(url).includes('openidconnect.googleapis.com'))return new Response(JSON.stringify({email:'drive-owner@example.test',email_verified:true}),{status:200});return new Response(JSON.stringify({id:'folder',mimeType:'application/vnd.google-apps.folder',trashed:false,capabilities:{canAddChildren:true}}),{status:200});};
+ const service=await createApplication({dataDir,origin,secret,setupToken,serveFiles:false,googleClientId:'google-client',googleClientSecret:'google-secret',dataKey:'d'.repeat(48),googleFetch});
  const server=service.app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
  const client=()=>({cookie:''});const owner=client(),employee=client(),stranger=client();
@@ -50,6 +51,16 @@ test('実認証・招待・権限・共有保存・同時編集・退職・復�
  assert.equal((await call(employee,'/api/obsidian/devices',{name:'禁止'})).status,403);
  assert.equal((await call(owner,'/api/obsidian/devices/revoke',{id:created.data.id})).status,200);
  assert.equal((await fetch(`${base}/api/obsidian/sync/index`,{headers:{authorization:`Bearer ${created.data.token}`}})).status,401);
+ });
+ await t.test('管理者だけがGoogleドライブを接続・保存先設定・解除できる',async()=>{
+  const initial=await call(owner,'/api/google/status');assert.equal(initial.status,200);assert.equal(initial.data.configured,true);assert.equal(initial.data.connected,false);
+  assert.equal((await call(employee,'/api/google/connect',{})).status,403);
+  const connect=await call(owner,'/api/google/connect',{});assert.equal(connect.status,200);const authorization=new URL(connect.data.url);const state=authorization.searchParams.get('state');assert.match(authorization.searchParams.get('scope'),/drive\.file/);
+  const callback=await fetch(`${base}/api/google/callback?code=authorization-code&state=${encodeURIComponent(state)}`,{headers:{cookie:owner.cookie},redirect:'manual'});assert.equal(callback.status,302);assert.equal(callback.headers.get('location'),' /#google=connected'.trim());
+  const connected=await call(owner,'/api/google/status');assert.equal(connected.data.email,'drive-owner@example.test');assert.equal(connected.data.connected,true);
+  const encrypted=service.db.prepare('SELECT encrypted_tokens FROM google_connections').get().encrypted_tokens;assert.ok(!encrypted.includes('google-access'));assert.ok(!encrypted.includes('google-refresh'));
+  assert.equal((await call(owner,'/api/google/folder',{folderId:'folder'})).status,200);assert.equal((await call(owner,'/api/google/status')).data.folderId,'folder');
+  assert.equal((await call(owner,'/api/google/disconnect',{})).status,200);assert.equal((await call(owner,'/api/google/status')).data.connected,false);
  });
  await t.test('共有予定が別の社員にも見え、古い版による上書きを拒否',async()=>{
  const current=(await call(owner,'/api/workspace')).data;

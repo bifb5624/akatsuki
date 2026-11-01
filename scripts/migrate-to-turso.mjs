@@ -20,7 +20,7 @@ const backupPath=path.join(backupDir,`before-turso-${new Date().toISOString().re
 await source.backup(backupPath);await chmod(backupPath,0o600);
 
 const target=await openDatabase({dataDir,url,authToken});
-const tables=['user','companies','account','session','verification','rateLimit','memberships','invitations','activity','obsidian_devices','setup_state'];
+const tables=['user','companies','account','session','verification','rateLimit','memberships','invitations','activity','obsidian_devices','google_connections','setup_state'];
 const normalize=value=>typeof value==='bigint'?value.toString():value;
 const normalizedRows=rows=>rows.map(row=>Object.fromEntries(Object.entries(row).map(([key,value])=>[key,normalize(value)])));
 const hash=rows=>createHash('sha256').update(JSON.stringify(normalizedRows(rows))).digest('hex');

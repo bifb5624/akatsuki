@@ -14,6 +14,8 @@ import {setShift,reviewShift,setGrant,leaveUnits} from '../src/team.js';
 import {addMonths,japanToday} from '../src/schedule.js';
 import {syncManifest,resolveSyncFile} from './obsidian-sync.js';
 import {openDatabase,authSchema} from './database.js';
+import {GoogleOAuth,encryptTokens,decryptTokens} from './google-oauth.js';
+import {GoogleDriveFiles} from './google-drive.js';
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const text=(max=100)=>z.string().trim().min(1).max(max);
 const date=z.string().refine(v=>!!addMonths(v,0),'日付を確認してください');
@@ -24,7 +26,7 @@ const eventInput=z.object({id:z.string().optional(),title:text(),date,time:z.str
 const assetInput=z.object({name:text(),building:text(80),floor:text(30),category:text(40),installed:z.union([z.literal(''),date]),months:z.number().int().min(0).max(1200),note:z.string().max(500)}).strict();
 class AppError extends Error{constructor(status,message){super(message);this.status=status;}}
 const deny=(message='この操作は許可されていません。')=>{throw new AppError(403,message);};
-export async function createApplication({dataDir,origin,secret,setupToken,serveFiles=true,trustProxyHops=0,databaseUrl,databaseAuthToken}){
+export async function createApplication({dataDir,origin,secret,setupToken,serveFiles=true,trustProxyHops=0,databaseUrl,databaseAuthToken,googleClientId,googleClientSecret,dataKey,googleFetch=fetch}){
  if(!secret||secret.length<32||!setupToken||setupToken.length<32)throw Error('Authentication secrets must contain at least 32 characters.');
  const publicOrigin=new URL(origin).origin;
  if(process.env.NODE_ENV==='production'&&!publicOrigin.startsWith('https://'))throw Error('Production requires an HTTPS APP_ORIGIN.');
@@ -36,6 +38,9 @@ export async function createApplication({dataDir,origin,secret,setupToken,serveF
  const auth=betterAuth(authOptions);
  const authContext=await auth.$context;
  await authContext.checkSchema?.();
+ const googleConfigured=Boolean(googleClientId||googleClientSecret||dataKey);
+ if(googleConfigured&&(!googleClientId||!googleClientSecret||!dataKey||dataKey.length<32))throw Error('GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and APP_DATA_KEY (32+ characters) must be configured together.');
+ const google=googleConfigured?new GoogleOAuth({clientId:googleClientId,clientSecret:googleClientSecret,redirectUri:`${publicOrigin}/api/google/callback`,fetchImpl:googleFetch}):null;
  if(![0,1].includes(trustProxyHops))throw Error('Invalid proxy configuration');
  const app=express();app.disable('x-powered-by');
  if(trustProxyHops)app.set('trust proxy',trustProxyHops);
@@ -64,6 +69,7 @@ export async function createApplication({dataDir,origin,secret,setupToken,serveF
   return device;
  };
  const snapshot=async m=>{const company=await companyState(m.company_id);const all=await directory(m.company_id);return {actor:m.user_id,company:company.name,revision:company.revision,members:all.map(user=>m.role==='admin'||user.id===m.user_id?user:(({email,...rest})=>rest)(user)),state:{...company.state,grants:company.state.grants.filter(g=>m.role==='admin'||g.member===m.user_id),audit:[]}};};
+ const driveFor=async companyId=>{if(!google)throw new AppError(503,'Googleドライブ連携はまだ設定されていません。');const connection=await store.get('SELECT * FROM google_connections WHERE company_id=?',companyId);if(!connection)throw new AppError(409,'Googleドライブを接続してください。');let tokens=decryptTokens(connection.encrypted_tokens,dataKey);return {connection,drive:new GoogleDriveFiles({fetchImpl:googleFetch,getAccessToken:async({refresh=false}={})=>{if(refresh||!tokens.access_token||Number(tokens.expires_at)<Date.now()+60_000){const updated=await google.refresh(tokens.refresh_token);tokens={...tokens,...updated,refresh_token:updated.refresh_token||tokens.refresh_token};await store.run('UPDATE google_connections SET encrypted_tokens=?,updated_at=? WHERE company_id=?',encryptTokens(tokens,dataKey),new Date().toISOString(),companyId);}return tokens.access_token;}})};};
  app.get('/api/health',(_req,res)=>res.json({ok:true}));
  app.get('/api/status',async(_req,res)=>res.json({initialized:(await store.get('SELECT status FROM setup_state WHERE id=1')).status!=='available',emailDelivery:false,database:store.remote?'turso':'local'}));
  app.post('/api/setup',actionLimit,async(req,res)=>{
@@ -75,6 +81,11 @@ export async function createApplication({dataDir,origin,secret,setupToken,serveF
  }catch(error){await store.run("UPDATE setup_state SET status='available' WHERE id=1 AND status='processing'");throw error;}
  });
  app.get('/api/workspace',async(req,res)=>res.json(await snapshot(await sessionMember(req))));
+ app.get('/api/google/status',async(req,res)=>{const m=await sessionMember(req);requireAdmin(m);const connection=await store.get('SELECT email,folder_id,connected_at,updated_at FROM google_connections WHERE company_id=?',m.company_id);res.json({configured:Boolean(google),connected:Boolean(connection),...(connection?{email:connection.email,folderId:connection.folder_id,connectedAt:connection.connected_at}: {})});});
+ app.post('/api/google/connect',actionLimit,async(req,res)=>{const m=await sessionMember(req);requireAdmin(m);if(!google)throw new AppError(503,'Googleドライブ連携はまだ設定されていません。');const state=randomBytes(32).toString('base64url');await store.batch([{sql:'DELETE FROM google_oauth_states WHERE expires<?',args:[Date.now()]},{sql:'INSERT INTO google_oauth_states VALUES(?,?,?,?)',args:[digest(state),m.company_id,m.user_id,Date.now()+10*60_000]}]);res.json({url:google.authorizationUrl(state)});});
+ app.get('/api/google/callback',async(req,res)=>{try{if(!google)throw new AppError(503,'Google連携は設定されていません。');if(req.query.error)throw new AppError(400,'Google接続が取り消されました。');const m=await sessionMember(req);requireAdmin(m);const state=typeof req.query.state==='string'?req.query.state:'';const saved=await store.get('SELECT * FROM google_oauth_states WHERE state_hash=? AND company_id=? AND user_id=? AND expires>?',digest(state),m.company_id,m.user_id,Date.now());if(!saved)throw new AppError(400,'Google接続の有効期限が切れました。');await store.run('DELETE FROM google_oauth_states WHERE state_hash=?',digest(state));const tokens=await google.exchange(req.query.code);const accountEmail=await google.email(tokens.access_token);const now=new Date().toISOString();await store.run(`INSERT INTO google_connections(company_id,email,folder_id,encrypted_tokens,connected_by,connected_at,updated_at) VALUES(?,?,NULL,?,?,?,?) ON CONFLICT(company_id) DO UPDATE SET email=excluded.email,folder_id=NULL,encrypted_tokens=excluded.encrypted_tokens,connected_by=excluded.connected_by,connected_at=excluded.connected_at,updated_at=excluded.updated_at`,m.company_id,accountEmail,encryptTokens(tokens,dataKey),m.user_id,now,now);await log(m.company_id,m.user_id,'google_connected',{email:accountEmail});res.redirect('/#google=connected');}catch{res.redirect('/#google=error');}});
+ app.post('/api/google/folder',actionLimit,async(req,res)=>{const m=await sessionMember(req);requireAdmin(m);const {folderId}=z.object({folderId:text(200)}).strict().parse(req.body);const {drive}=await driveFor(m.company_id);await drive.checkFolder(folderId);await store.run('UPDATE google_connections SET folder_id=?,updated_at=? WHERE company_id=?',folderId,new Date().toISOString(),m.company_id);await log(m.company_id,m.user_id,'google_folder_selected');res.json({ok:true});});
+ app.post('/api/google/disconnect',actionLimit,async(req,res)=>{const m=await sessionMember(req);requireAdmin(m);const connection=await store.get('SELECT encrypted_tokens FROM google_connections WHERE company_id=?',m.company_id);if(!connection)throw new AppError(404,'Googleドライブは接続されていません。');const tokens=decryptTokens(connection.encrypted_tokens,dataKey);const revoked=await google.revoke(tokens.refresh_token||tokens.access_token);await store.run('DELETE FROM google_connections WHERE company_id=?',m.company_id);await log(m.company_id,m.user_id,'google_disconnected',{revoked});res.json({ok:true,revoked});});
  app.post('/api/commands',async(req,res)=>{
  const m=await sessionMember(req);const {revision,operation,payload}=z.object({revision:z.number().int().min(0),operation:text(),payload:z.unknown()}).strict().parse(req.body);
  const company=await companyState(m.company_id);if(company.revision!==revision)throw new AppError(409,'他の人が更新しました。入力内容を控え、最新の情報を読み込んでから登録してください。');
