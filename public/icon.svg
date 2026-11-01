@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="暁">
+  <rect width="512" height="512" rx="112" fill="#10233f"/>
+  <path d="M104 326c47-36 94-54 141-54 58 0 112 25 163 75v61H104z" fill="#284b78"/>
+  <circle cx="256" cy="218" r="105" fill="#f4c46a"/>
+  <path d="M91 290h330v123H91z" fill="#10233f"/>
+  <text x="256" y="355" text-anchor="middle" font-size="190" font-family="sans-serif" font-weight="700" fill="#fff">暁</text>
+</svg>

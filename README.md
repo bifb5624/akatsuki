@@ -72,3 +72,9 @@ Better Authによるパスワード認証とCookieセッション、管理者限
 配布ZIPは `python scripts/package-obsidian-plugin.py`、引き継ぎ一式は `python scripts/export-handoff.py` で生成する。どちらもGit管理外の `.private-notes/` に置く。
 
 アプリが未公開なのでMac実機への接続は未確認。ChatGPT会話の常時自動取得機能ではない。詳細は `docs/Obsidian自動同期.md` を参照。
+
+## ホーム画面への追加
+
+PWAマニフェスト、ネイビーのアプリアイコン、サービスワーカーを実装済み。公開後は対応するスマホ・タブレットのブラウザからホーム画面へ追加できる。認証情報や業務データを含む `/api/` はサービスワーカーでキャッシュしない。
+
+Web Pushによる期限通知と、iPhone・Android実機での追加確認は未実施。

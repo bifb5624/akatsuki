@@ -132,3 +132,4 @@ function bindMembers(){
  api('/api/activity').then(list=>{const el=document.querySelector('#activity-list');if(el)el.innerHTML=list.slice(0,20).map(a=>`<p>${new Date(a.created_at).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'})} / ${esc(name(a.actor))} / ${actions[a.action]||'更新'}</p>`).join('')||'記録はありません。';}).catch(()=>{const el=document.querySelector('#activity-list');if(el)el.textContent='操作記録を取得できませんでした。';});
 }
 if(ready)render();
+if('serviceWorker' in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
