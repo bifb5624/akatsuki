@@ -32,6 +32,7 @@ const schemaStatements=[
  `CREATE TABLE IF NOT EXISTS obsidian_devices(id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),name TEXT NOT NULL,token_hash TEXT NOT NULL UNIQUE,active INTEGER NOT NULL DEFAULT 1,created_by TEXT NOT NULL,created_at TEXT NOT NULL,last_used_at TEXT)`,
  `CREATE TABLE IF NOT EXISTS google_connections(company_id TEXT PRIMARY KEY REFERENCES companies(id),email TEXT NOT NULL,folder_id TEXT,encrypted_tokens TEXT NOT NULL,connected_by TEXT NOT NULL,connected_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,company_id TEXT NOT NULL,user_id TEXT NOT NULL,expires INTEGER NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS google_files(id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),export_id TEXT NOT NULL,drive_file_id TEXT NOT NULL,name TEXT NOT NULL,mime_type TEXT NOT NULL,sha256 TEXT NOT NULL,created_by TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(company_id,export_id))`,
  `CREATE TABLE IF NOT EXISTS setup_state(id INTEGER PRIMARY KEY CHECK(id=1),status TEXT NOT NULL)`,
  `INSERT OR IGNORE INTO setup_state VALUES(1,'available')`,
 ];

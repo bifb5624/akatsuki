@@ -5,6 +5,10 @@ export async function api(path,body){
  const data=await response.json().catch(()=>({error:'サーバーに接続できません。時間をおいてお試しください。'}));
  if(!response.ok){const error=new Error(data.error||data.message||'処理できませんでした。');error.status=response.status;throw error;}return data;
 }
+export async function apiFile(path,bytes){
+ const response=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/pdf','x-akatsuki-request':'1'},body:bytes});
+ const data=await response.json().catch(()=>({error:'Googleドライブの保存結果を確認できませんでした。'}));if(!response.ok)throw Error(data.error||'Googleドライブへ保存できませんでした。');return data;
+}
 export async function initializeAccess(){
  if(new URLSearchParams(location.search).get('demo')==='1'){context.mode='demo';return true;}
  const invitation=new URLSearchParams(location.hash.slice(1)).get('invite');

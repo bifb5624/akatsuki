@@ -91,4 +91,4 @@ Turso実環境への接続は未確認。接続前のローカルlibSQL、認証
 
 管理者画面にGoogle OAuth接続、接続状況、保存先フォルダ確認、接続解除を実装済み。`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、32文字以上の `APP_DATA_KEY` をすべて設定した場合だけ有効になる。トークンはAES-256-GCMで暗号化し、Googleパスワードは扱わない。権限は `drive.file` に限定する。
 
-Google Cloud側の許可済みリダイレクトURLは、公開URLに `/api/google/callback` を付けた値にする。実Googleアカウントとの接続とPDF画面からの直接保存は未確認。
+Google Cloud側の許可済みリダイレクトURLは、公開URLに `/api/google/callback` を付けた値にする。シフト・有給PDFは端末へ保存した後、接続済みなら同じ内容をGoogleドライブにも自動保存する。保存番号とSHA-256で内容違いの重複を拒否する。実Googleアカウントとの接続・保存は未確認。
