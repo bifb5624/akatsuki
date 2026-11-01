@@ -10,6 +10,7 @@ const DOCUMENTS = [
   'アカウント移行.md',
   'Macの暁Vaultへの入れ方.md',
   'Obsidian自動同期.md',
+  'TursoとGoogleドライブ.md',
   'はじめに.md',
 ];
 const DIRECTORIES = ['images', 'examples'];
