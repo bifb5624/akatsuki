@@ -1,0 +1,9 @@
+{
+  "id": "akatsuki-sync",
+  "name": "Akatsuki Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Akatsukiの開発記録を専用サーバーから安全に同期します。",
+  "author": "Akatsuki",
+  "isDesktopOnly": false
+}

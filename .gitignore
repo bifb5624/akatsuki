@@ -1,0 +1,14 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.local/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Private conversation archives and account handoff bundles
+.private-notes/

@@ -1,0 +1,21 @@
+import {createApplication} from '../server/app.js';
+import {chromium} from 'playwright-core';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {randomBytes} from 'node:crypto';
+import assert from 'node:assert/strict';
+const dir=await mkdtemp('/tmp/akatsuki-auth-browser-'),token=randomBytes(32).toString('hex'),password=randomBytes(20).toString('hex');
+const origin='http://localhost:3305';
+const service=await createApplication({dataDir:dir,origin,secret:randomBytes(40).toString('hex'),setupToken:token});
+const server=service.app.listen(3305,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
+try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);
+await page.getByLabel('会社名',{exact:true}).fill('確認用の会社');await page.getByLabel('管理者のお名前').fill('管理者');await page.getByLabel('メールアドレス',{exact:true}).fill('admin@example.test');await page.getByLabel('パスワード（12文字以上）',{exact:true}).fill(password);await page.getByLabel('初期設定用の確認コード').fill(token);await page.getByRole('button',{name:'管理者を登録する'}).click();
+await page.getByLabel('パスワード',{exact:true}).fill(password);await page.getByRole('button',{name:'ログインする'}).click();await page.getByRole('heading',{name:'今日も、見通しよく。'}).waitFor();
+await page.getByRole('button',{name:'＋ 予定・タスクを追加'}).click();await page.getByLabel('件名',{exact:true}).fill('共有保存の確認');await page.getByRole('button',{name:'保存する',exact:true}).click();await page.getByRole('heading',{name:'共有保存の確認'}).waitFor();
+await page.reload();await page.getByRole('heading',{name:'共有保存の確認'}).waitFor();
+await page.locator('nav [data-nav=members]').click();await page.getByRole('button',{name:'＋ 社員を招待'}).click();await page.locator('#modal [name=name]').fill('社員A');await page.locator('#modal [name=email]').fill('staff@example.test');await page.getByRole('button',{name:'招待リンクを発行'}).click();const invitation=await page.locator('#invitation-url').inputValue();
+const other=await browser.newPage();await other.goto(invitation);await other.locator('[name=password]').fill(password);await other.locator('[name=confirm]').fill(password);await other.getByRole('button',{name:'登録する',exact:true}).click();await other.getByLabel('パスワード',{exact:true}).fill(password);await other.getByRole('button',{name:'ログインする'}).click();await other.getByRole('heading',{name:'共有保存の確認'}).waitFor();
+await page.getByRole('button',{name:'閉じる',exact:true}).click();await page.getByRole('button',{name:'最新に更新'}).click();
+await page.getByRole('button',{name:'＋ 接続コードを発行'}).click();await page.getByRole('button',{name:'接続コードを発行する'}).click();assert.ok((await page.locator('#obsidian-token').inputValue()).length>=32);await page.getByRole('button',{name:'閉じる',exact:true}).click();await page.locator('#obsidian-device-list').getByText('Mac 暁',{exact:false}).waitFor();
+page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'利用を停止'}).click();await page.getByText('停止済み',{exact:true}).waitFor();await other.reload();await other.getByRole('heading',{name:'ログイン',exact:true}).waitFor();assert.deepEqual(errors,[]);console.log('PASS: browser setup, sign-in, shared persistence, invitation acceptance, employee access, Obsidian token issuance, disabled-session rejection');
+}finally{await browser.close();await new Promise(r=>server.close(r));service.close();await rm(dir,{recursive:true,force:true});}
