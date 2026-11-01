@@ -177,3 +177,5 @@
 - Render Blueprintから初回公開を実行したが、Webサービス作成がFailed deployになった。
 - Renderの公開先環境変数がURL形式 `RENDER_EXTERNAL_URL` とホスト名形式 `RENDER_EXTERNAL_HOSTNAME` のどちらでも動作するよう設定解決を修正した。
 - ホスト名からHTTPS公開元を組み立てる自動テストを追加。秘密値の再発行や再入力は行わない。
+- Renderのログで初回失敗の直接原因を確認: `NODE_ENV=production` によりdevDependenciesのViteが省略され、`sh: 1: vite: not found`、終了コード127になっていた。
+- Blueprintのビルドを `npm ci --include=dev --no-audit --no-fund && npm run build` へ変更し、公開用画面の作成に必要なViteを明示的にインストールするよう修正した。
