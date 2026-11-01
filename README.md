@@ -92,3 +92,9 @@ Turso実環境への接続は未確認。接続前のローカルlibSQL、認証
 管理者画面にGoogle OAuth接続、接続状況、保存先フォルダ確認、接続解除を実装済み。`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、32文字以上の `APP_DATA_KEY` をすべて設定した場合だけ有効になる。トークンはAES-256-GCMで暗号化し、Googleパスワードは扱わない。権限は `drive.file` に限定する。
 
 Google Cloud側の許可済みリダイレクトURLは、公開URLに `/api/google/callback` を付けた値にする。シフト・有給PDFは端末へ保存した後、接続済みなら同じ内容をGoogleドライブにも自動保存する。保存番号とSHA-256で内容違いの重複を拒否する。実Googleアカウントとの接続・保存は未確認。
+
+## Render公開設定
+
+`render.yaml` に無料Webサービス候補のビルド、起動、HTTPS URL利用、ヘルスチェック、自動再公開、秘密変数の欄を定義している。本番はTursoのURLとトークンが両方なければ起動を拒否し、一時ディスクへの業務データ保存を防ぐ。
+
+実際のRender/Turso登録と公開は未実施。初心者向けの順番は [無料公開の手順](docs/無料公開の手順.md) を参照する。

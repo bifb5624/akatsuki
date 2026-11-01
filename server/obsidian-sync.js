@@ -11,6 +11,7 @@ const DOCUMENTS = [
   'Macの暁Vaultへの入れ方.md',
   'Obsidian自動同期.md',
   'TursoとGoogleドライブ.md',
+  '無料公開の手順.md',
   'はじめに.md',
 ];
 const DIRECTORIES = ['images', 'examples'];

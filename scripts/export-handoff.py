@@ -26,6 +26,7 @@ NOTE_FILES = [
     "docs/Macの暁Vaultへの入れ方.md",
     "docs/Obsidian自動同期.md",
     "docs/TursoとGoogleドライブ.md",
+    "docs/無料公開の手順.md",
     "docs/はじめに.md",
 ]
 

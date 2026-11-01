@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: akatsuki
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci --no-audit --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_HOST
+        value: 0.0.0.0
+      - key: APP_TRUST_PROXY_HOPS
+        value: 1
+      - key: APP_AUTH_SECRET
+        generateValue: true
+      - key: APP_SETUP_TOKEN
+        sync: false
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
