@@ -1,0 +1,36 @@
+name: アプリの自動検査
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: ソースコードを取得
+        uses: actions/checkout@v4
+      - name: Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            obsidian-plugin/package-lock.json
+      - name: アプリの部品をインストール
+        run: npm ci --no-audit --no-fund
+      - name: 自動テスト
+        run: npm test
+      - name: 公開用画面を作成
+        run: npm run build
+      - name: Obsidianプラグインを検査
+        run: |
+          npm ci --prefix obsidian-plugin --no-audit --no-fund
+          npm run check --prefix obsidian-plugin
+          npm run build --prefix obsidian-plugin

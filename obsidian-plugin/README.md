@@ -13,7 +13,7 @@ MacのObsidian Vault「暁」へ、Akatsukiアプリの開発記録を自動同�
 
 ## 初回だけ必要な設定
 
-1. このフォルダの `manifest.json`、`main.js`、`styles.css` を「暁」の `.obsidian/plugins/akatsuki-sync/` へ置く。
+1. 配布ZIPをすべて展開し、Macで `暁にインストール.command` を実行する。標準的な保存場所なら「暁」を自動検出し、既存版をバックアップしてから必要ファイルを配置する。
 2. Obsidianの設定でコミュニティプラグインを有効にし、Akatsuki Syncをオンにする。
 3. Akatsukiアプリの「社員・アカウント」→「Obsidian『暁』の自動同期」で接続コードを発行する。
 4. プラグイン設定へアプリのHTTPS公開URLと接続コードを入力し、「今すぐ同期」を押す。
