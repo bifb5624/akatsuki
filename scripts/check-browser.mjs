@@ -20,6 +20,7 @@ try{
  await page.getByLabel('完了にする').check();await page.getByRole('button',{name:'保存する',exact:true}).click();
  assert.equal(await page.locator('.day-agenda .completed').count(),1);
  await page.screenshot({path:'/tmp/akatsuki-browser-check/calendar-navy.png',fullPage:true});
+ assert.ok(await page.locator('.calendar-panel').evaluate(element=>element.getBoundingClientRect().top<280),'calendar should start within the upper 280px on desktop');
  await page.locator('#actor').selectOption('a');await page.locator('nav [data-nav="shifts"]').click();
  assert.equal(await page.locator('.shift-table tbody tr').first().locator('button:disabled').count(),new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate());
  await page.locator(`[data-shift="${today}"]`).filter({visible:true}).nth(1).click();
