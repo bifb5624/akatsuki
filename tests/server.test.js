@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {randomBytes} from 'node:crypto';
 import Database from 'better-sqlite3';
+import {PDFDocument,StandardFonts} from 'pdf-lib';
 import {createApplication} from '../server/app.js';
 
 test('実認証・招待・権限・共有保存・同時編集・退職・復元の統合検証',async t=>{
@@ -63,6 +64,15 @@ test('実認証・招待・権限・共有保存・同時編集・退職・復�
   const pdf=new TextEncoder().encode('%PDF-1.7 test');const upload=await fetch(`${base}/api/google/files?name=${encodeURIComponent('シフト表.pdf')}&exportId=shifts-2026-11-all-1`,{method:'POST',headers:{cookie:owner.cookie,origin,'x-akatsuki-request':'1','content-type':'application/pdf'},body:pdf});assert.equal(upload.status,200);assert.equal((await upload.json()).id,'saved-pdf');assert.equal(service.db.prepare('SELECT count(*) n FROM google_files').get().n,1);
   const conflict=await fetch(`${base}/api/google/files?name=${encodeURIComponent('シフト表.pdf')}&exportId=shifts-2026-11-all-1`,{method:'POST',headers:{cookie:owner.cookie,origin,'x-akatsuki-request':'1','content-type':'application/pdf'},body:new TextEncoder().encode('%PDF-different')});assert.equal(conflict.status,409);
   assert.equal((await call(owner,'/api/google/disconnect',{})).status,200);assert.equal((await call(owner,'/api/google/status')).data.connected,false);
+ });
+ await t.test('ローカルPDFは管理者だけが登録・閲覧・修正できる',async()=>{
+  const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica);pdf.addPage().drawText('Receipt 2026/11/02 12000 yen T1234567890123',{font});const bytes=await pdf.save();
+  const upload=await fetch(`${base}/api/local/documents?name=receipt.pdf`,{method:'POST',headers:{cookie:owner.cookie,origin,'x-akatsuki-request':'1','content-type':'application/pdf'},body:bytes}),uploadData=await upload.json();assert.equal(upload.status,201,JSON.stringify(uploadData));const {id}=uploadData;
+  const denied=await fetch(`${base}/api/local/documents?name=receipt.pdf`,{method:'POST',headers:{cookie:employee.cookie,origin,'x-akatsuki-request':'1','content-type':'application/pdf'},body:bytes});assert.equal(denied.status,403);
+  const ownerList=await call(owner,'/api/google/documents');assert.ok(ownerList.data.some(record=>record.id===id&&record.source==='local'));
+  const employeeList=await call(employee,'/api/google/documents');assert.ok(!employeeList.data.some(record=>record.id===id));
+  const updated=await call(owner,'/api/documents/update',{id,entityId:'commerce',date:'2026-11-02',vendor:'発行会社',amount:12000,taxRate:10,registration:'T1234567890123',category:'領収書',visibility:'admin'});assert.equal(updated.status,200);
+  assert.equal(JSON.parse(service.db.prepare('SELECT extracted FROM document_records WHERE id=?').get(id).extracted).entityId,'commerce');
  });
  await t.test('共有予定が別の社員にも見え、古い版による上書きを拒否',async()=>{
  const current=(await call(owner,'/api/workspace')).data;
