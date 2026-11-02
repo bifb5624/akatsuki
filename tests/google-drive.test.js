@@ -19,6 +19,9 @@ test('書類管理フォルダを重複させず作成する',async()=>{
  const calls=[];const drive=new GoogleDriveFiles({getAccessToken:async()=> 'test-access',fetchImpl:async(url,options={})=>{calls.push({url,options});if(options.method==='POST')return response({id:'created-folder',name:'暁 書類管理'});return response({files:[]});}});
  const folder=await drive.ensureFolder('暁 書類管理');assert.equal(folder.id,'created-folder');assert.equal(calls.length,2);assert.equal(calls[1].options.method,'POST');assert.match(calls[1].options.body,/google-apps.folder/);
 });
+test('確認前の分類変更に合わせてDrive上の名前を変更する',async()=>{
+ let call;const drive=new GoogleDriveFiles({getAccessToken:async()=> 'test-access',fetchImpl:async(url,options)=>{call={url,options};return response({id:'file123',name:'変更後.pdf'});}});await drive.renameFile('file123','変更後.pdf');assert.equal(call.options.method,'PATCH');assert.deepEqual(JSON.parse(call.options.body),{name:'変更後.pdf'});
+});
 test('期限切れトークンは一度だけ更新し、アクセス拒否を隠さない',async()=>{
  const refresh=[];let calls=0;const drive=new GoogleDriveFiles({getAccessToken:async options=>{refresh.push(options.refresh);return 'test-access';},fetchImpl:async()=>++calls===1?response({},401):response({},403)});
  await assert.rejects(()=>drive.checkFolder('folder'),error=>error instanceof DriveConnectionError&&!error.retryable);assert.deepEqual(refresh,[false,true]);

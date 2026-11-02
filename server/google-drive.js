@@ -56,6 +56,7 @@ export class GoogleDriveFiles {
  async moveFile({fileId,name,fromFolder,toFolder}){
   if(![fileId,fromFolder,toFolder].every(identifier))throw Error('移動するファイルとフォルダを確認してください。');const query=new URLSearchParams({addParents:toFolder,removeParents:fromFolder,fields:'id,name,parents'});return this.request(`${ROOT}/drive/v3/files/${fileId}?${query}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:safeFileName(name)})});
  }
+ async renameFile(fileId,name){if(!identifier(fileId))throw Error('変更するファイルを確認してください。');return this.request(`${ROOT}/drive/v3/files/${fileId}?fields=id,name`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:safeFileName(name)})});}
  async saveFile({folderId,exportId,name,mimeType,bytes}){
   if(!identifier(folderId)||!identifier(exportId))throw Error('保存先と保存処理の識別子を確認してください。');
   if(!mimeTypes.has(mimeType))throw Error('保存できる形式はPDF・JPEG・PNGです。');
