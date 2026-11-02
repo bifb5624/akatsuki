@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createSample,setShift,reviewShift,balance,grantFor,setGrant,periodMatches,monthDates} from '../src/team.js';
+import {createSample,setShift,setShifts,reviewShift,balance,grantFor,setGrant,periodMatches,monthDates} from '../src/team.js';
 const sample=()=>createSample('2026-11-01');
 test('週は月曜始まりで年・月をまたいでも正しい',()=>{
  assert.equal(periodMatches('2025-12-29','week','2026-01-01'),true);
@@ -16,6 +16,13 @@ test('半休申請は0.5日を予約し、承認後も二重計上しない',()=
  assert.deepEqual(balance(state,grant),{approved:.5,pending:0,available:9.5});
  state=setShift(state,'a',{member:'a',date:'2026-11-02',type:'paid'});
  assert.equal(state.shifts.length,1);assert.equal(state.shifts[0].status,'pending');assert.equal(balance(state,grant).available,9);
+});
+test('シフトを一括入力し、登録済みの日を残せる',()=>{
+ let state=setShift(sample(),'a',{member:'a',date:'2026-11-02',type:'off'});
+ state=setShifts(state,'a',{member:'a',dates:['2026-11-02','2026-11-03','2026-11-04'],type:'work',onlyUnset:true});
+ assert.equal(state.shifts.find(s=>s.date==='2026-11-02').type,'off');
+ assert.deepEqual(state.shifts.filter(s=>s.type==='work').map(s=>s.date).sort(),['2026-11-03','2026-11-04']);
+ assert.throws(()=>setShifts(state,'a',{member:'b',dates:['2026-11-05'],type:'work',onlyUnset:false}));
 });
 test('本人以外の変更・社員の承認・過剰申請・未設定期間を拒否',()=>{
  assert.throws(()=>setShift(sample(),'a',{member:'b',date:'2026-11-02',type:'am'}));

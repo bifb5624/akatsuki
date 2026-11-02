@@ -34,6 +34,10 @@ export function setShift(state,actor,input){
  const entry={id:existing?.id||crypto.randomUUID(),member:actor,date:input.date,type:input.type,status:units?'pending':'approved'};
  return {...state,shifts:[...state.shifts.filter(s=>s.id!==existing?.id),entry],audit:[...state.audit,{actor,action:'shift',before:existing??null,after:entry,at:new Date().toISOString()}]};
 }
+export function setShifts(state,actor,input){
+ if(input.member!==actor||!Array.isArray(input.dates)||!input.dates.length||input.dates.length>31||new Set(input.dates).size!==input.dates.length)throw Error('一括入力する日付を確認してください。');
+ return input.dates.reduce((next,date)=>input.onlyUnset&&next.shifts.some(s=>s.member===actor&&s.date===date)?next:setShift(next,actor,{member:actor,date,type:input.type}),state);
+}
 export function reviewShift(state,actor,id,status,directory=members){
  if(directory.find(m=>m.id===actor)?.role!=='admin')throw Error('管理者だけが承認できます。');
  if(!['approved','rejected'].includes(status))throw Error('操作を確認してください。');

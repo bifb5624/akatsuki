@@ -1,4 +1,5 @@
-import {mkdir} from 'node:fs/promises';
+import {mkdir,readFile} from 'node:fs/promises';
+import {PDFDocument} from 'pdf-lib';
 await mkdir('/tmp/akatsuki-browser-check',{recursive:true});
 import {chromium} from 'playwright-core';
 import assert from 'node:assert/strict';
@@ -6,7 +7,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1080},deviceScaleFactor:1});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(process.env.APP_URL||'http://127.0.0.1:5173/?demo=1');await page.getByRole('heading',{name:'今日も、見通しよく。'}).waitFor();await page.evaluate(()=>document.fonts.ready);
+ await page.goto(process.env.APP_URL||'http://127.0.0.1:5173/?demo=1');await page.getByRole('heading',{name:'ホーム',exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
  const today=await page.evaluate(()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo'}).format(new Date()));const month=today.slice(0,7);
  await page.screenshot({path:'/tmp/akatsuki-browser-check/home-navy.png',fullPage:true});
  await page.locator('nav [data-nav="calendar"]').click();
@@ -34,7 +35,7 @@ try{
  await page.screenshot({path:'/tmp/akatsuki-browser-check/leave-navy.png',fullPage:true});
  const leaveDownload=page.waitForEvent('download',{timeout:30000}).catch(async e=>{console.log('PDF status',await page.locator('#page-message').innerText());throw e;});await page.locator('#download-leave').click();await (await leaveDownload).saveAs('/tmp/akatsuki-leave.pdf');console.log('Leave PDF downloaded');
  await page.locator('nav [data-nav="shifts"]').click();
- const shiftDownload=page.waitForEvent('download',{timeout:60000});await page.locator('#download-shifts').click();await (await shiftDownload).saveAs('/tmp/akatsuki-shifts.pdf');
+ const shiftDownload=page.waitForEvent('download',{timeout:60000});await page.locator('#download-shifts').click();await (await shiftDownload).saveAs('/tmp/akatsuki-shifts.pdf');assert.equal((await PDFDocument.load(await readFile('/tmp/akatsuki-shifts.pdf'))).getPageCount(),1);
  await page.reload();await page.locator('nav [data-nav="calendar"]').click();assert.match(await page.locator('.day-agenda').innerText(),/点検の準備（操作確認）/);
  await page.locator('nav [data-nav="equipment"]').click();await page.getByRole('button',{name:'＋ 設備を追加'}).click();
  await page.getByLabel('備品名',{exact:true}).fill('照明（回帰確認）');await page.getByLabel('階',{exact:true}).last().fill('5階');await page.getByRole('button',{name:'設備を追加',exact:true}).click();assert.match(await page.locator('tbody').innerText(),/照明（回帰確認）/);

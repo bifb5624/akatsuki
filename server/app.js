@@ -10,7 +10,7 @@ import {z} from 'zod';
 import {randomBytes,randomUUID,createHash,timingSafeEqual} from 'node:crypto';
 import {mkdir,chmod} from 'node:fs/promises';
 import path from 'node:path';
-import {setShift,reviewShift,setGrant,leaveUnits} from '../src/team.js';
+import {setShift,setShifts,reviewShift,setGrant,leaveUnits} from '../src/team.js';
 import {addMonths,japanToday} from '../src/schedule.js';
 import {syncManifest,resolveSyncFile} from './obsidian-sync.js';
 import {openDatabase,authSchema} from './database.js';
@@ -96,6 +96,7 @@ export async function createApplication({dataDir,origin,secret,setupToken,serveF
  case 'event.save':{const item=eventInput.parse(payload);if(!active(item.member))throw new AppError(400,'担当者を選び直してください。');if(item.id&&!next.events.some(e=>e.id===item.id))throw new AppError(404,'予定が見つかりません。');const entry={...item,id:item.id||randomUUID()};next={...next,events:[...next.events.filter(e=>e.id!==entry.id),entry]};detail={id:entry.id};break;}
  case 'event.delete':{const {id}=z.object({id:text()}).strict().parse(payload);if(!next.events.some(e=>e.id===id))throw new AppError(404,'予定が見つかりません。');next={...next,events:next.events.filter(e=>e.id!==id)};detail={id};break;}
  case 'shift.save':{const item=z.object({member:text(),date,type:z.enum(['work','off','paid','am','pm'])}).strict().parse(payload);next=setShift(next,m.user_id,item);detail=item;break;}
+ case 'shift.bulk':{const item=z.object({member:text(),dates:z.array(date).min(1).max(31),type:z.enum(['work','off','paid','am','pm']),onlyUnset:z.boolean()}).strict().parse(payload);next=setShifts(next,m.user_id,item);detail={...item,count:item.dates.length};break;}
  case 'shift.cancel':{const {id}=z.object({id:text()}).strict().parse(payload);const existing=next.shifts.find(s=>s.id===id);if(!existing||existing.member!==m.user_id)deny();next={...next,shifts:next.shifts.filter(s=>s.id!==id)};detail={before:existing};break;}
  case 'shift.review':{requireAdmin(m);const item=z.object({id:text(),status:z.enum(['approved','rejected'])}).strict().parse(payload);next=reviewShift(next,m.user_id,item.id,item.status,all);detail=item;break;}
  case 'grant.save':{requireAdmin(m);const item=z.object({member:text(),start:date,end:date,days:z.number()}).strict().parse(payload);if(!active(item.member))throw new AppError(400,'利用中の社員を選んでください。');next=setGrant(next,m.user_id,item,all);detail=item;break;}
