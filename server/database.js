@@ -34,6 +34,7 @@ const schemaStatements=[
  `CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,company_id TEXT NOT NULL,user_id TEXT NOT NULL,expires INTEGER NOT NULL)`,
  `CREATE TABLE IF NOT EXISTS google_files(id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),export_id TEXT NOT NULL,drive_file_id TEXT NOT NULL,name TEXT NOT NULL,mime_type TEXT NOT NULL,sha256 TEXT NOT NULL,created_by TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(company_id,export_id))`,
  `CREATE TABLE IF NOT EXISTS google_workflows(company_id TEXT PRIMARY KEY REFERENCES companies(id),root_id TEXT NOT NULL,folders TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
+ `CREATE TABLE IF NOT EXISTS document_records(id TEXT PRIMARY KEY,company_id TEXT NOT NULL REFERENCES companies(id),drive_file_id TEXT NOT NULL,name_before TEXT NOT NULL,name_after TEXT NOT NULL,category TEXT NOT NULL,status TEXT NOT NULL,pages TEXT NOT NULL,extracted TEXT NOT NULL,error TEXT,verified_by TEXT,verified_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(company_id,drive_file_id))`,
  `CREATE TABLE IF NOT EXISTS setup_state(id INTEGER PRIMARY KEY CHECK(id=1),status TEXT NOT NULL)`,
  `INSERT OR IGNORE INTO setup_state VALUES(1,'available')`,
 ];

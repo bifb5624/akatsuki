@@ -17,7 +17,7 @@ export function safeFileName(value){
  */
 export class GoogleDriveFiles {
  constructor({getAccessToken,fetchImpl=fetch}){if(typeof getAccessToken!=='function')throw Error('A server-side token provider is required.');this.tokenProvider=getAccessToken;this.fetch=fetchImpl;}
- async request(url,options={}){
+ async request(url,options={},responseType='json'){
   for(let attempt=0;attempt<2;attempt++){
    const token=await this.tokenProvider({refresh:attempt===1});
    if(typeof token!=='string'||!token)throw new DriveConnectionError('Googleドライブに接続してください。',{needsReconnect:true});
@@ -29,6 +29,7 @@ export class GoogleDriveFiles {
    if(response.status===404)throw new DriveConnectionError('保存先が見つかりません。フォルダを選び直してください。');
    if(response.status===429||response.status>=500)throw new DriveConnectionError('Googleドライブが混み合っています。時間をおいて再度お試しください。',{retryable:true});
    if(!response.ok)throw new DriveConnectionError('Googleドライブへの保存に失敗しました。');
+   if(responseType==='bytes')return new Uint8Array(await response.arrayBuffer());
    const data=await response.json().catch(()=>{throw new DriveConnectionError('Googleドライブからの応答を確認できませんでした。',{retryable:true});});return data;
   }
  }
@@ -47,6 +48,13 @@ export class GoogleDriveFiles {
   const root=await this.ensureFolder('暁 書類管理'),folders={},categories=['領収書','点検・メンテナンス','交換記録'];
   for(const stage of ['00_未処理','10_自動読取済み_要確認','20_目視確認済み','90_読取エラー']){const stageFolder=await this.ensureFolder(stage,root.id);folders[stage]={id:stageFolder.id};for(const category of categories)folders[stage][category]=(await this.ensureFolder(category,stageFolder.id)).id;}
   const exports=await this.ensureFolder('アプリ作成PDF',folders['20_目視確認済み'].id);return {root,folders,exports};
+ }
+ async listFiles(folderId){
+  if(!identifier(folderId))throw Error('読取元フォルダを確認してください。');const query=new URLSearchParams({q:`'${folderId}' in parents and trashed = false`,fields:'files(id,name,mimeType,size,modifiedTime)',pageSize:'100',orderBy:'createdTime',spaces:'drive'});const result=await this.request(`${ROOT}/drive/v3/files?${query}`);return result.files||[];
+ }
+ async downloadFile(fileId){if(!identifier(fileId))throw Error('読取ファイルを確認してください。');return this.request(`${ROOT}/drive/v3/files/${fileId}?alt=media`,{},'bytes');}
+ async moveFile({fileId,name,fromFolder,toFolder}){
+  if(![fileId,fromFolder,toFolder].every(identifier))throw Error('移動するファイルとフォルダを確認してください。');const query=new URLSearchParams({addParents:toFolder,removeParents:fromFolder,fields:'id,name,parents'});return this.request(`${ROOT}/drive/v3/files/${fileId}?${query}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({name:safeFileName(name)})});
  }
  async saveFile({folderId,exportId,name,mimeType,bytes}){
   if(!identifier(folderId)||!identifier(exportId))throw Error('保存先と保存処理の識別子を確認してください。');
