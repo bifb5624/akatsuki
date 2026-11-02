@@ -41,13 +41,14 @@ try{
  await page.getByLabel('備品名',{exact:true}).fill('照明（回帰確認）');await page.getByLabel('階',{exact:true}).last().fill('5階');await page.getByRole('button',{name:'設備を追加',exact:true}).click();assert.match(await page.locator('tbody').innerText(),/照明（回帰確認）/);
  for(const width of [320,375,390,540,768,1024,1440,1920]){
  await page.setViewportSize({width,height:900});
- for(const view of ['home','calendar','shifts','leave','equipment']){
+ for(const view of ['home','calendar','shifts','leave','equipment','company']){
+ if(width<=700)await page.locator('#menu-toggle').click();
  await page.locator(`nav [data-nav="${view}"]`).click();
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  assert.equal(overflow,false,`page overflow at ${width}px / ${view}`);
  }
  }
- await page.setViewportSize({width:390,height:844});await page.locator('nav [data-nav="home"]').click();await page.screenshot({path:'/tmp/akatsuki-browser-check/home-mobile.png',fullPage:true});
- await page.locator('nav [data-nav="calendar"]').click();await page.screenshot({path:'/tmp/akatsuki-browser-check/calendar-mobile.png',fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS: event create/complete/persist; own shift editing; half-day application/approval; two PDF downloads; existing equipment add; 8 widths x 5 pages without page overflow; no browser errors');
+ await page.setViewportSize({width:390,height:844});await page.locator('#menu-toggle').click();await page.locator('nav [data-nav="home"]').click();await page.screenshot({path:'/tmp/akatsuki-browser-check/home-mobile.png',fullPage:true});
+ await page.locator('#menu-toggle').click();await page.locator('nav [data-nav="calendar"]').click();await page.screenshot({path:'/tmp/akatsuki-browser-check/calendar-mobile.png',fullPage:true});
+ assert.deepEqual(errors,[]);console.log('PASS: event create/complete/persist; own shift editing; half-day application/approval; two PDF downloads; existing equipment add; 8 widths x 6 pages without page overflow; no browser errors');
 }finally{await browser.close();}
