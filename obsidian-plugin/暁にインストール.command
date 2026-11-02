@@ -11,10 +11,25 @@ if [ ! -f "$SOURCE_DIR/manifest.json" ] || [ ! -f "$SOURCE_DIR/main.js" ]; then
 fi
 
 VAULT=""
+OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
+if [ -f "$OBSIDIAN_CONFIG" ] && command -v python3 >/dev/null 2>&1; then
+  VAULT="$(python3 - "$OBSIDIAN_CONFIG" <<'PY'
+import json, sys
+try:
+    vaults=json.load(open(sys.argv[1],encoding='utf-8')).get('vaults',{}).values()
+    choices=sorted(vaults,key=lambda item:(bool(item.get('open')),item.get('ts',0)),reverse=True)
+    print(choices[0].get('path','') if choices else '')
+except Exception:
+    print('')
+PY
+)"
+  if [ ! -d "$VAULT/.obsidian" ]; then VAULT=""; fi
+fi
 for CANDIDATE in \
   "$HOME/Documents/暁" \
   "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/暁"
 do
+  if [ -n "$VAULT" ]; then break; fi
   if [ -d "$CANDIDATE/.obsidian" ]; then VAULT="$CANDIDATE"; break; fi
 done
 
