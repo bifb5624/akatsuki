@@ -4,7 +4,9 @@ const AUTH='https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN='https://oauth2.googleapis.com/token';
 const USERINFO='https://openidconnect.googleapis.com/v1/userinfo';
 const REVOKE='https://oauth2.googleapis.com/revoke';
-const SCOPES=['openid','email','https://www.googleapis.com/auth/drive.file'];
+// Full Drive access is required for the opt-in inbox workflow: users place files
+// in Drive themselves, then Akatsuki renames and moves those same files.
+const SCOPES=['openid','email','https://www.googleapis.com/auth/drive'];
 const key=value=>createHash('sha256').update(`akatsuki-google-v1\0${value}`).digest();
 
 export function encryptTokens(tokens,dataKey){

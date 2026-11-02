@@ -55,7 +55,7 @@ test('実認証・招待・権限・共有保存・同時編集・退職・復�
  await t.test('管理者だけがGoogleドライブを接続・保存先設定・解除できる',async()=>{
   const initial=await call(owner,'/api/google/status');assert.equal(initial.status,200);assert.equal(initial.data.configured,true);assert.equal(initial.data.connected,false);
   assert.equal((await call(employee,'/api/google/connect',{})).status,403);
-  const connect=await call(owner,'/api/google/connect',{});assert.equal(connect.status,200);const authorization=new URL(connect.data.url);const state=authorization.searchParams.get('state');assert.match(authorization.searchParams.get('scope'),/drive\.file/);
+  const connect=await call(owner,'/api/google/connect',{});assert.equal(connect.status,200);const authorization=new URL(connect.data.url);const state=authorization.searchParams.get('state');assert.match(authorization.searchParams.get('scope'),/auth\/drive(?:\s|$)/);
   const callback=await fetch(`${base}/api/google/callback?code=authorization-code&state=${encodeURIComponent(state)}`,{headers:{cookie:owner.cookie},redirect:'manual'});assert.equal(callback.status,302);assert.equal(callback.headers.get('location'),' /#google=connected'.trim());
   const connected=await call(owner,'/api/google/status');assert.equal(connected.data.email,'drive-owner@example.test');assert.equal(connected.data.connected,true);
   const encrypted=service.db.prepare('SELECT encrypted_tokens FROM google_connections').get().encrypted_tokens;assert.ok(!encrypted.includes('google-access'));assert.ok(!encrypted.includes('google-refresh'));

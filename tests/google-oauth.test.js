@@ -8,9 +8,9 @@ test('Googleトークンを認証付き暗号で保存し、改ざんを拒否�
  const parts=encrypted.split('.');parts[2]=`${parts[2][0]==='A'?'B':'A'}${parts[2].slice(1)}`;assert.throws(()=>decryptTokens(parts.join('.'),dataKey),/復号/);assert.throws(()=>decryptTokens(encrypted,'x'.repeat(48)),/復号/);
 });
 
-test('Google OAuthは限定権限を要求し、コード交換とメール確認を行う',async()=>{
+test('Google OAuthはDrive投入ファイルの移動権限を要求し、コード交換とメール確認を行う',async()=>{
  const calls=[];const oauth=new GoogleOAuth({clientId:'client',clientSecret:'secret',redirectUri:'https://app.example/api/google/callback',fetchImpl:async(url,options)=>{calls.push({url,options});if(url.includes('/token'))return new Response(JSON.stringify({access_token:'access',refresh_token:'refresh',expires_in:3600}),{status:200});return new Response(JSON.stringify({email:'owner@example.test',email_verified:true}),{status:200});}});
- const url=new URL(oauth.authorizationUrl('state-value'));assert.equal(url.searchParams.get('state'),'state-value');assert.match(url.searchParams.get('scope'),/drive\.file/);assert.equal(url.searchParams.get('access_type'),'offline');
+ const url=new URL(oauth.authorizationUrl('state-value'));assert.equal(url.searchParams.get('state'),'state-value');assert.match(url.searchParams.get('scope'),/auth\/drive(?:\s|$)/);assert.doesNotMatch(url.searchParams.get('scope'),/drive\.file/);assert.equal(url.searchParams.get('access_type'),'offline');
  const tokens=await oauth.exchange('authorization-code');assert.equal(tokens.refresh_token,'refresh');assert.ok(tokens.expires_at>Date.now());assert.equal(await oauth.email(tokens.access_token),'owner@example.test');
  assert.equal(new URLSearchParams(calls[0].options.body).get('client_secret'),'secret');
 });

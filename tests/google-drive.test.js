@@ -15,6 +15,10 @@ test('同じ保存処理の再試行は既存ファイルを再利用する',asy
  let calls=0;const drive=new GoogleDriveFiles({getAccessToken:async()=> 'test-access',fetchImpl:async()=>++calls===1?response(folder):response({files:[{id:'existing',name:payload.name,appProperties:{sha256:createHash('sha256').update(bytes).digest('hex')}}]})});
  assert.equal((await drive.saveFile(payload)).reused,true);assert.equal(calls,2);
 });
+test('書類管理フォルダを重複させず作成する',async()=>{
+ const calls=[];const drive=new GoogleDriveFiles({getAccessToken:async()=> 'test-access',fetchImpl:async(url,options={})=>{calls.push({url,options});if(options.method==='POST')return response({id:'created-folder',name:'暁 書類管理'});return response({files:[]});}});
+ const folder=await drive.ensureFolder('暁 書類管理');assert.equal(folder.id,'created-folder');assert.equal(calls.length,2);assert.equal(calls[1].options.method,'POST');assert.match(calls[1].options.body,/google-apps.folder/);
+});
 test('期限切れトークンは一度だけ更新し、アクセス拒否を隠さない',async()=>{
  const refresh=[];let calls=0;const drive=new GoogleDriveFiles({getAccessToken:async options=>{refresh.push(options.refresh);return 'test-access';},fetchImpl:async()=>++calls===1?response({},401):response({},403)});
  await assert.rejects(()=>drive.checkFolder('folder'),error=>error instanceof DriveConnectionError&&!error.retryable);assert.deepEqual(refresh,[false,true]);
