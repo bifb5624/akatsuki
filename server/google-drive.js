@@ -45,9 +45,9 @@ export class GoogleDriveFiles {
   return this.request(`${ROOT}/drive/v3/files?fields=id,name`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:folderName,parents:[parentId],mimeType:'application/vnd.google-apps.folder'})});
  }
  async ensureWorkflowFolders(){
-  const root=await this.ensureFolder('暁 書類管理'),folders={},categories=['領収書','点検・メンテナンス','交換記録'];
-  for(const stage of ['00_未処理','10_自動読取済み_要確認','20_目視確認済み','90_読取エラー']){const stageFolder=await this.ensureFolder(stage,root.id);folders[stage]={id:stageFolder.id};for(const category of categories)folders[stage][category]=(await this.ensureFolder(category,stageFolder.id)).id;}
-  const exports=await this.ensureFolder('アプリ作成PDF',folders['20_目視確認済み'].id);return {root,folders,exports};
+  const root=await this.ensureFolder('暁 書類管理'),folders={};
+  for(const stage of ['00_未処理','10_自動読取済み_要確認','20_目視確認済み','90_読取エラー'])folders[stage]=(await this.ensureFolder(stage,root.id)).id;
+  const exports=await this.ensureFolder('アプリ作成PDF',root.id);return {root,folders,exports};
  }
  async listFiles(folderId){
   if(!identifier(folderId))throw Error('読取元フォルダを確認してください。');const query=new URLSearchParams({q:`'${folderId}' in parents and trashed = false`,fields:'files(id,name,mimeType,size,modifiedTime)',pageSize:'100',orderBy:'createdTime',spaces:'drive'});const result=await this.request(`${ROOT}/drive/v3/files?${query}`);return result.files||[];
